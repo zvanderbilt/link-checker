@@ -102,13 +102,12 @@ class LinkChecker
     unless @html_files.empty?
       file_pluralized = (@html_files.size.eql? 1) ? 'file' : 'files'
       link_pluralized = (@links.size.eql? 1) ? 'link' : 'links'
-      if @errors.empty?
-        puts ("Checked #{@links.size} #{link_pluralized} in #{@html_files.size} " +
-          "HTML #{file_pluralized} and found no errors.").green
+      summary = "Checked #{@links.size} #{link_pluralized} in #{@html_files.size}"
+	  if @errors.empty?
+		  puts ("#{summary} HTML #{file_pluralized} and found no errors.").green
       else
         error_pluralized = (@errors.size.eql? 1) ? 'error' : 'errors'
-        puts ("Checked #{@links.size} #{link_pluralized} in #{@html_files.size} " +
-          "HTML #{file_pluralized} and found #{@errors.size} #{error_pluralized}.").red
+		puts ("#{summary} HTML #{file_pluralized} and found #{@errors.size} #{error_pluralized}.").red
       end
     end
 
@@ -145,8 +144,8 @@ class LinkChecker
   # Spawn a thread to check an HTML page, and then spawn a thread for checking each
   # link within that page.
   #
-  # @param source [String] The contents of the HTML page, as a string.
-  # @param source_name [String] The name of the source, which will be reported if
+  # @param page [String] The contents of the HTML page, as a string.
+  # @param page_name [String] The name of the source, which will be reported if
   # there is an error or a warning.
   def check_page(page, page_name)
     Thread.new do
