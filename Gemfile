@@ -1,9 +1,10 @@
-source :rubygems
+source 'https://rubygems.org' 
 
 gem "nokogiri", "~> 1.5.5"
 gem "colorize", "~> 0.5.8"
 gem "anemone", "~> 0.7.2"
 gem "trollop", "~> 2.0"
+gem "certified", "~> 0.1.1"
 
 group(:test, :development) do
   gem "rspec", "~> 2.11.0"

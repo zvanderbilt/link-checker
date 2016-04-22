@@ -5,6 +5,7 @@ require 'net/https'
 require 'uri'
 require 'colorize'
 require 'anemone'
+require 'certified'
 
 class LinkChecker
 
@@ -25,6 +26,9 @@ class LinkChecker
     @return_code = 0
 
     @options[:max_threads] ||= 4
+
+	@m = Mutex.new
+
   end
 
   # Find a list of HTML files in the @target path, which was set in the {#initialize} method.
@@ -40,9 +44,9 @@ class LinkChecker
   # @return [Array] A list of URI strings.
   def self.external_link_uri_strings(source)
     Nokogiri::HTML(source).css('a').select {|link|
-        !link.attribute('href').nil? &&
+		link.attribute('href') &&
         link.attribute('href').value =~ /^https?\:\/\//
-    }.map{|link| link.attributes['href'].value }
+	}.map{|link| link['href'] }
   end
 
   # Check one URL.
@@ -149,16 +153,16 @@ class LinkChecker
       threads = []
       results = []
       self.class.external_link_uri_strings(page).each do |uri_string|
-        Thread.exclusive { @links << page }
+        @m.synchronize { @links << page }
         wait_to_spawn_thread
         threads << Thread.new do
           begin
             uri = URI(uri_string)
             response = self.class.check_uri(uri)
             response.uri_string = uri_string
-            Thread.exclusive { results << response }
+            @m.synchronize { results << response }
           rescue => error
-            Thread.exclusive { results <<
+            @m.synchronize { results <<
               Error.new( :error => error.to_s, :uri_string => uri_string) }
           end
         end
@@ -181,7 +185,7 @@ class LinkChecker
       errors = errors + warnings
       warnings = []
     end
-    Thread.exclusive do
+    @m.synchronize do
       # Store the results in the LinkChecker instance.
       # This must be thread-exclusive to avoid a race condition.
       @errors = @errors.concat(errors)
