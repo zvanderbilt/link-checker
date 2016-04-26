@@ -186,14 +186,14 @@ class LinkChecker
     Thread.new do
       results = []
       begin
-        Thread.exclusive { @links << uri_string }
+        @m.synchronize { @links << uri_string }
         uri = URI(uri_string)
         response = self.class.check_uri(uri)
         response.uri_string = uri_string
         yield response if block_given?
-        Thread.exclusive { results << response }
+        @m.synchronize { results << response }
       rescue => error
-        Thread.exclusive { results <<
+        @m.synchronize { results <<
           Error.new( :error => error.to_s, :uri_string => uri_string) }
       end
       report_results(uri_string, results)
