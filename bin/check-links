@@ -1,13 +1,102 @@
 #!/usr/bin/env ruby
 
+require 'optparse'
+require 'pp'
 require 'link_checker'
-require 'trollop'
 
-options = Trollop::options do
-	opt :no_warnings, "Don't warn about redirects to valid links"
-	opt :warnings_are_errors, "Treat any warning as an error and produce an error return code"
-	opt :max_threads, "The maximum number of threads to start.", :default => 100
-	opt :filename, "File containing urls to check, one per line.", :type => :string
+class OptParse
+
+def self.parse(args)
+	options = { 
+		name: 'crawler_results', 
+		dest: '/tmp/', 
+		to: `whoami`, 
+    	max_threads: 4,
+	}
+
+	opts = OptionParser.new do |opts| 
+	opts.banner = "Usage: #$0 [options]"
+	opts.separator "" 
+	opts.separator "Specific options:"
+
+	# Cast 'target' argument to a  object.
+	opts.on("-t", "--target TARGET", "Base URL to begin spidering") do |target|
+		options[:target] = target 
+	end
+
+	# Cast 'dest' argument to a  object.
+	opts.on("-d", "--dest [DESTINATION]", "Output CSV Destination") do |dest|
+		options[:dest] = dest 
+	end
+
+	# Cast 'name' argument to a  object.
+	opts.on("-n", "--name [NAME]", "Output CSV name") do |name| 
+		options[:name] = name 
+	end
+
+	# Cast 'To Address' argument to a  object.
+	opts.on("-m", "--mailto [MAILTO]", "Email Recipient") do |to| 
+		options[:to] = to
+	end
+
+    # Cast 'Max Threads' argument to a  object.
+    opts.on("--max-threads [#]", "Max Threads") do |to|
+        options[:max_threads] = :max_threads
+    end
+
+    #  'No Warnings' switch
+    opts.on("--no-warnings", "Don't warn about redirects") do |to|
+        options[:no_warnings] = :no_warnings
+    end
+
+    # 'Warnings are errors' switch
+    opts.on("--warnings-are-errors", "Treat any warning as an error") do |to|
+        options[:warnings_are_errors] = :warnings_are_errors
+    end
+
+	# Boolean switch.
+	opts.on("-v", "--[no-]verbose", "Run verbosely") do |v| 
+		options[:verbose] = v
+	end
+
+	opts.separator "" 
+	opts.separator "Common options:"
+
+	# No argument, shows at tail.  This will print an options summary.
+	opts.on_tail("-h", "--help", "Show this message") do 
+		puts opts 
+		exit 
+	end
+
+	opts.on_tail("-V", "--version", "Show version") do 
+		puts Version 
+		exit 
+	end 
+	end    
+
+begin
+	opts.parse!
+	mandatory = [:target]                                      
+	missing = mandatory.select{ |param| options[param].nil? }   
+	unless missing.empty?                                        
+		puts "Missing options: #{missing.join(', ')}"
+		puts ""
+		puts opts                                     
+		exit                                           
+	end                                                 
+rescue OptionParser::InvalidOption, OptionParser::MissingArgument  
+	puts $!.to_s
+	puts opts                                               
+	exit                                                        
 end
+	options
 
-exit LinkChecker.new(:options => options, :target => ARGV[0]).check_uris
+end  # parse 
+end  # class
+
+options = OptParse.parse(ARGV)
+pp options
+puts "#@target"
+
+exit LinkChecker.new(options).check_uris
+

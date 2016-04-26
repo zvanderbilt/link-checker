@@ -1,3 +1,4 @@
+require 'byebug'
 require 'fakeweb'
 
 require 'simplecov'

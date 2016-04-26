@@ -8,30 +8,31 @@ require 'anemone'
 require 'certified'
 
 class LinkChecker
-
   # Create a new instance of LinkChecker
   #
-  # @param params [Hash] A hash containing the :target value, which can represent either
+  # @param options [Hash] A hash containing the :target value, which can represent either
   #   a file path or a URL.  And an optional :options value, which contains a hash with a
   #   list of possible optional paramters.  This can include :no_warnings, :warnings_are_errors,
   #   or :max_threads
-  def initialize(params)
-    @options = params[:options] || { }
-    @target =  params[:target] || './'
-
+  def initialize(options)
+	@options = options 
+	@target = @options[:target]
+    
     @html_files = []
     @links = []
     @errors = []
     @warnings = []
     @return_code = 0
 
-    @options[:max_threads] ||= 4
-
 	@m = Mutex.new
+	
 
   end
 
-  # Find a list of HTML files in the @target path, which was set in the {#initialize} method.
+puts "The target is #@target"
+puts "The target is #{@options[:target]}"
+  
+# Find a list of HTML files in the @target path, which was set in the {#initialize} method.
   def html_file_paths
     Find.find(@target).map {|path|
       FileTest.file?(path) && (path =~ /\.html?$/) ? path : nil
@@ -45,7 +46,7 @@ class LinkChecker
   def self.external_link_uri_strings(source)
     Nokogiri::HTML(source).css('a').select {|link|
 		link.attribute('href') &&
-        link.attribute('href').value =~ /^https?\:\/\//
+		link.attribute('href').value !~ /(mailto|tel)/
 	}.map{|link| link['href'] }
   end
 
@@ -283,9 +284,9 @@ class LinkChecker
 
     # A new LinkChecker::Result object instance.
     #
-    # @param params [Hash] A hash of parameters.  Expects :uri_string.
-    def initialize(params)
-      @uri_string = params[:uri_string]
+    # @param options [Hash] A hash of parameters.  Expects :uri_string.
+    def initialize(options)
+      @uri_string = options[:uri_string]
     end
   end
 
@@ -300,25 +301,25 @@ class LinkChecker
 
     # A new LinkChecker::Redirect object.
     #
-    # @param params [Hash] A hash of parameters.  Expects :final_destination_uri_string,
+    # @param options [Hash] A hash of parameters.  Expects :final_destination_uri_string,
     # which is the URL that the original :uri_string redirected to.
-    def initialize(params)
-      @final_destination_uri_string = params[:final_destination_uri_string]
-      @good = params[:good]
-      super(params)
+    def initialize(options)
+      @final_destination_uri_string = options[:final_destination_uri_string]
+      @good = options[:good]
+      super(options)
     end
   end
 
   # A bad result.  The URL is not valid for some reason.  Any reason, other than a 200
   # HTTP response.
   #
-  # @param params [Hash] A hash of parameters.  Expects :error, which is a string
+  # @param options [Hash] A hash of parameters.  Expects :error, which is a string
   # representing the error.
   class Error < Result
     attr_reader :error
-    def initialize(params)
-      @error = params[:error]
-      super(params)
+    def initialize(options)
+      @error = options[:error]
+      super(options)
     end
   end
 
@@ -335,4 +336,4 @@ class LinkChecker
     end
   end
 
-end
+end # Class
