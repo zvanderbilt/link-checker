@@ -100,7 +100,7 @@ describe LinkChecker do
 
     it "calls the correct function if filename parameter is passed in." do
       LinkChecker.any_instance.should_receive(:check_uris_from_file).with('whatever.txt')
-      LinkChecker.new(:options => { :filename => 'whatever.txt' }).check_uris
+      LinkChecker.new(@options => { :filename => 'whatever.txt' }).check_uris
     end
 
     it "validates links located in file" do
@@ -117,7 +117,7 @@ describe LinkChecker do
       end
       $stdout.should_receive(:puts).with(/Checked\: http/).once
       $stdout.should_receive(:puts).with(/Checked 1 link in 1 HTML file and found no errors/)
-      LinkChecker.new(:options => { :filename => 'whatever.txt' }).check_uris
+      LinkChecker.new(@options => { :filename => 'whatever.txt' }).check_uris
     end
 
   end
@@ -137,7 +137,7 @@ describe LinkChecker do
       check_uri.should_receive(:join)
       LinkChecker.any_instance.should_receive(:check_uri).and_return(check_uri)
 
-      LinkChecker.new(:options => {}).check_uris_from_activerecord(url_records_query, url_attribute)
+      LinkChecker.new(@options => {}).check_uris_from_activerecord(url_records_query, url_attribute)
     end
 
     it "processes the url if no block given" do
@@ -155,7 +155,7 @@ describe LinkChecker do
       end
       $stdout.should_receive(:puts).with(/Checked\: http/).once
 
-      LinkChecker.new(:options => {}).check_uris_from_activerecord(url_records_query, url_attribute)
+      LinkChecker.new(@options => {}).check_uris_from_activerecord(url_records_query, url_attribute)
     end
 
     it "calls the block if provided with the results of the uri check" do
@@ -175,7 +175,7 @@ describe LinkChecker do
       end
       $stdout.should_receive(:puts).with(/Checked\: http/).once
 
-      LinkChecker.new(:options => {}).check_uris_from_activerecord(url_records_query, url_attribute) { |url, response|
+      LinkChecker.new(@options => {}).check_uris_from_activerecord(url_records_query, url_attribute) { |url, response|
         url.should == url_record
         response.should == expected_link_status
       }
@@ -202,7 +202,7 @@ describe LinkChecker do
       LinkChecker.new(
         :target => @site_path,
         # This is to make sure that the entire LinkChecker#wait_to_spawn_thread gets hit during testing.
-        :options => { :max_threads => 1 }
+        @options => { :max_threads => 1 }
       ).check_uris.should == 0 # Return value: good
     end
 
@@ -234,7 +234,7 @@ describe LinkChecker do
       LinkChecker.new(:target => @site_path).check_uris.should == 0 # Return value: good
     end
 
-    it "prints errors when there are warnings with the --warnings_are_errors option." do
+    it "prints errors when there are warnings with the --warnings-are-errors option." do
       LinkChecker.stub(:check_uri) do
         LinkChecker::Redirect.new(
           :uri_string => 'http://something.com',
@@ -247,7 +247,7 @@ describe LinkChecker do
       $stdout.should_receive(:puts).with(/Checked 20 links in 1 HTML file and found 20 errors/)
       LinkChecker.new(
         :target => @site_path,
-        :options => { :warnings_are_errors => true }
+		:warnings_are_errors => true
       ).check_uris.should == 1 # Return value: error
     end
 

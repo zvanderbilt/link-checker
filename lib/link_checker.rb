@@ -14,23 +14,22 @@ class LinkChecker
   #   a file path or a URL.  And an optional :options value, which contains a hash with a
   #   list of possible optional paramters.  This can include :no_warnings, :warnings_are_errors,
   #   or :max_threads
-  def initialize(options)
-	@options = options 
-	@target = @options[:target]
-    
-    @html_files = []
+
+  def initialize(params)
+	@options = params[:options] || { }	
+	@target =  params[:target] || './'
+
+	@html_files = []
     @links = []
     @errors = []
     @warnings = []
     @return_code = 0
-
-	@m = Mutex.new
 	
-
+	@m = Mutex.new
+	@options[:max_threads] ||= 10
+    @options[:no_warnings] ||= false
+    @options[:warnings_are_errors] ||= false	
   end
-
-puts "The target is #@target"
-puts "The target is #{@options[:target]}"
   
 # Find a list of HTML files in the @target path, which was set in the {#initialize} method.
   def html_file_paths
@@ -45,9 +44,9 @@ puts "The target is #{@options[:target]}"
   # @return [Array] A list of URI strings.
   def self.external_link_uri_strings(source)
     Nokogiri::HTML(source).css('a').select {|link|
-		link.attribute('href') &&
-		link.attribute('href').value !~ /(mailto|tel)/
-	}.map{|link| link['href'] }
+        link.attribute('href') &&
+        link.attribute('href').value =~ /^https?\:\/\//
+    }.map{|link| link['href'] }
   end
 
   # Check one URL.
@@ -58,6 +57,7 @@ puts "The target is #{@options[:target]}"
   def self.check_uri(uri, redirected=false)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true if uri.scheme == "https"
+	http.read_timeout = 30
     begin
     http.start do
       path = (uri.path.empty?) ? '/' : uri.path
@@ -95,7 +95,7 @@ puts "The target is #{@options[:target]}"
   def check_uris
     begin
       if ! @options[:filename].nil?
-        check_uris_from_file(@options[:filename])
+        check_uris_from_file
       elsif @target =~ /^https?\:\/\//
         check_uris_by_crawling
       else
@@ -139,9 +139,9 @@ puts "The target is #{@options[:target]}"
 
   # Spawn a thread (up to max_threads) to check each page in the array
   # print out the results once found
-  def check_uris_from_file(filename)
+  def check_uris_from_file
     threads = []
-    f = File.open(filename, "r")
+    f = File.open(@options[:filename], "r")
     f.each_line do |line|
       wait_to_spawn_thread
       uri_string = line.strip
@@ -241,7 +241,7 @@ puts "The target is #{@options[:target]}"
     @return_code = 1 unless errors.empty?
     if @options[:warnings_are_errors]
       @return_code = 1 unless warnings.empty?
-      errors = errors + warnings
+      errors = #{errors}#{warnings}
       warnings = []
     end
     @m.synchronize do
@@ -285,8 +285,8 @@ puts "The target is #{@options[:target]}"
     # A new LinkChecker::Result object instance.
     #
     # @param options [Hash] A hash of parameters.  Expects :uri_string.
-    def initialize(options)
-      @uri_string = options[:uri_string]
+    def initialize(params)
+      @uri_string = params[:uri_string]
     end
   end
 
@@ -303,10 +303,10 @@ puts "The target is #{@options[:target]}"
     #
     # @param options [Hash] A hash of parameters.  Expects :final_destination_uri_string,
     # which is the URL that the original :uri_string redirected to.
-    def initialize(options)
-      @final_destination_uri_string = options[:final_destination_uri_string]
-      @good = options[:good]
-      super(options)
+    def initialize(params)
+      @final_destination_uri_string = params[:final_destination_uri_string]
+      @good = params[:good]
+      super(params)
     end
   end
 
@@ -317,9 +317,9 @@ puts "The target is #{@options[:target]}"
   # representing the error.
   class Error < Result
     attr_reader :error
-    def initialize(options)
-      @error = options[:error]
-      super(options)
+    def initialize(params)
+      @error = params[:error]
+      super(params)
     end
   end
 
@@ -327,7 +327,7 @@ puts "The target is #{@options[:target]}"
 
   # Checks the current :max_threads setting and blocks until the number of threads is
   # below that number.
-  def wait_to_spawn_thread
+def wait_to_spawn_thread
     # Never spawn more than the specified maximum number of threads.
     until Thread.list.select {|thread| thread.status == "run"}.count <
       (1 + @options[:max_threads]) do
@@ -336,4 +336,5 @@ puts "The target is #{@options[:target]}"
     end
   end
 
-end # Class
+end # class
+

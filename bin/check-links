@@ -6,12 +6,13 @@ require 'link_checker'
 
 class OptParse
 
+Version = "0.8.1"
+
 def self.parse(args)
 	options = { 
 		name: 'crawler_results', 
 		dest: '/tmp/', 
-		to: `whoami`, 
-    	max_threads: 4,
+		to: `whoami`,
 	}
 
 	opts = OptionParser.new do |opts| 
@@ -40,19 +41,24 @@ def self.parse(args)
 	end
 
     # Cast 'Max Threads' argument to a  object.
-    opts.on("--max-threads [#]", "Max Threads") do |to|
-        options[:max_threads] = :max_threads
+    opts.on("--max-threads [#]", "Max Threads") do |max_threads|
+        options[:max_threads] = max_threads
     end
 
     #  'No Warnings' switch
-    opts.on("--no-warnings", "Don't warn about redirects") do |to|
-        options[:no_warnings] = :no_warnings
+    opts.on("--no-warnings", "Don't warn about redirects") do |no_warnings|
+        options[:no_warnings] = no_warnings
     end
 
     # 'Warnings are errors' switch
-    opts.on("--warnings-are-errors", "Treat any warning as an error") do |to|
-        options[:warnings_are_errors] = :warnings_are_errors
+    opts.on("--warnings_are_errors", "Treat any warning as an error") do |warnings_are_errors|
+        options[:warnings_are_errors] = warnings_are_errors
     end
+
+	# Cast filename to object
+	opts.on("-f", "--filename", "File containing urls to check, one per line.") do |filename|
+		options[:filename] = filename
+	end
 
 	# Boolean switch.
 	opts.on("-v", "--[no-]verbose", "Run verbosely") do |v| 
@@ -96,7 +102,5 @@ end  # class
 
 options = OptParse.parse(ARGV)
 pp options
-puts "#@target"
 
 exit LinkChecker.new(options).check_uris
-
